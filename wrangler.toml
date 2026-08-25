@@ -1,0 +1,12 @@
+name = "site-traffic-dashboard"
+compatibility_date = "2025-07-18"
+pages_build_output_dir = "public"
+
+# ID таблицы держим на сервере: в браузер он не попадает — дашборд ходит
+# только в /api/traffic. В проде эти же значения удобнее задать в
+# Cloudflare Pages → Settings → Variables and Secrets.
+[vars]
+SHEET_ID = "10hH-WRYkhc7lR8bZd74CEBqCHfcK7lQ-Q9OnRQaDy5U"
+SHEET_DAILY = "По дням"
+SHEET_ENGINES = "Поисковые системы (для графика)"
+CACHE_TTL = "300"

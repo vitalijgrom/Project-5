@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ru" data-theme="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Трафик сайта — источники переходов</title>
+<meta name="description" content="Дашборд посещаемости сайта по источникам трафика: поиск, прямые заходы, реклама, ссылки и внутренние переходы. Данные — из Google Таблицы.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<link rel="stylesheet" href="assets/styles.css">
+<script>
+  // Тема применяется до первой отрисовки, чтобы не было вспышки светлого фона.
+  try {
+    var saved = localStorage.getItem('traffic-dashboard-theme');
+    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  } catch (e) {}
+</script>
+</head>
+<body class="viz-root">
+
+<a class="skip-link" href="#content">Перейти к содержимому</a>
+
+<header class="topbar">
+  <div class="topbar__title">
+    <h1>Трафик сайта</h1>
+    <p class="topbar__sub">Визиты по источникам переходов: поиск, прямые заходы, реклама, ссылки, внутренние</p>
+  </div>
+  <div class="topbar__actions">
+    <span class="status" id="status" role="status" aria-live="polite">Загрузка данных…</span>
+    <button class="btn" id="refresh" type="button" title="Обновить данные из Google Таблицы">
+      <span aria-hidden="true">⟳</span> Обновить
+    </button>
+    <button class="btn btn--icon" id="theme" type="button" aria-label="Переключить тему">
+      <span aria-hidden="true">◐</span>
+    </button>
+  </div>
+</header>
+
+<div class="banner" id="banner" hidden></div>
+
+<main id="content">
+
+  <!-- Один ряд фильтров скоупит всё, что ниже: KPI, графики и таблицу. -->
+  <section class="filters" aria-label="Фильтры">
+    <label class="field">
+      <span class="field__label">Период</span>
+      <select id="f-window">
+        <option value="12">Последние 12 месяцев</option>
+        <option value="24" selected>Последние 24 месяца</option>
+        <option value="36">Последние 36 месяцев</option>
+        <option value="60">Последние 5 лет</option>
+        <option value="0">Весь период</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field__label">Шаг</span>
+      <select id="f-step">
+        <option value="month" selected>Месяц</option>
+        <option value="quarter">Квартал</option>
+        <option value="year">Год</option>
+      </select>
+    </label>
+    <fieldset class="field field--sources">
+      <legend class="field__label">Источники</legend>
+      <div class="checks" id="f-sources"></div>
+    </fieldset>
+    <button class="btn btn--ghost" id="reset" type="button">Сбросить</button>
+  </section>
+
+  <!-- Ведущее число + плитки показателей -->
+  <section class="kpis" aria-label="Ключевые показатели">
+    <article class="card kpi kpi--hero">
+      <p class="kpi__label">Визитов за период</p>
+      <p class="kpi__value kpi__value--hero" id="kpi-total">—</p>
+      <p class="kpi__hint" id="kpi-total-hint">&nbsp;</p>
+    </article>
+    <article class="card kpi">
+      <p class="kpi__label">К прошлому периоду</p>
+      <p class="kpi__value" id="kpi-delta">—</p>
+      <p class="kpi__hint" id="kpi-delta-hint">&nbsp;</p>
+    </article>
+    <article class="card kpi">
+      <p class="kpi__label">Доля поиска</p>
+      <p class="kpi__value" id="kpi-search">—</p>
+      <p class="kpi__hint" id="kpi-search-hint">&nbsp;</p>
+    </article>
+    <article class="card kpi">
+      <p class="kpi__label">В среднем за месяц</p>
+      <p class="kpi__value" id="kpi-avg">—</p>
+      <p class="kpi__hint" id="kpi-avg-hint">&nbsp;</p>
+    </article>
+    <article class="card kpi">
+      <p class="kpi__label">Пиковый месяц</p>
+      <p class="kpi__value kpi__value--text" id="kpi-peak">—</p>
+      <p class="kpi__hint" id="kpi-peak-hint">&nbsp;</p>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="card chart card--wide" id="card-trend">
+      <header class="card__head">
+        <h2>Динамика визитов</h2>
+        <p class="card__sub" id="trend-sub">&nbsp;</p>
+      </header>
+      <div class="chart__plot" id="chart-trend"></div>
+      <footer class="legend" id="trend-legend"></footer>
+    </article>
+
+    <article class="card chart" id="card-split">
+      <header class="card__head">
+        <h2>Структура источников</h2>
+        <p class="card__sub">Доля каждого источника в визитах за период</p>
+      </header>
+      <div class="chart__body" id="chart-split"></div>
+    </article>
+
+    <article class="card chart" id="card-yoy">
+      <header class="card__head">
+        <h2>Период к периоду</h2>
+        <p class="card__sub" id="yoy-sub">&nbsp;</p>
+      </header>
+      <div class="chart__body" id="chart-yoy"></div>
+    </article>
+
+    <article class="card chart card--wide" id="card-engines">
+      <header class="card__head">
+        <h2>Поисковые системы</h2>
+        <p class="card__sub" id="engines-sub">Из чего складываются переходы из поиска</p>
+      </header>
+      <div class="chart__plot" id="chart-engines"></div>
+      <footer class="legend" id="engines-legend"></footer>
+    </article>
+
+    <article class="card chart card--wide" id="card-heat">
+      <header class="card__head">
+        <h2>Сезонность: год × месяц</h2>
+        <p class="card__sub">Тёмная клетка — много визитов, пустая — месяца ещё (или уже) нет в данных</p>
+      </header>
+      <div class="chart__body chart__body--scroll" id="chart-heat"></div>
+      <footer class="legend legend--scale" id="heat-legend"></footer>
+    </article>
+  </section>
+
+  <section class="card card--wide table-card">
+    <header class="card__head card__head--row">
+      <div>
+        <h2>Данные по периодам</h2>
+        <p class="card__sub" id="table-sub">&nbsp;</p>
+      </div>
+      <button class="btn btn--ghost" id="export" type="button">Скачать CSV</button>
+    </header>
+    <div class="table-wrap">
+      <table class="data-table" id="table">
+        <thead>
+          <tr id="table-head"></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pagefoot">
+  <p>Источник данных — Google Таблица, запрашивается через Cloudflare-прослойку <code>/api/traffic</code>.</p>
+  <p id="foot-meta"></p>
+</footer>
+
+<div class="tooltip" id="tooltip" role="tooltip" aria-hidden="true"></div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

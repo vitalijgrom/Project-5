@@ -1,0 +1,15 @@
+{
+  "name": "site-traffic-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Дашборд трафика сайта на данных из Google Таблицы, с прослойкой на Cloudflare Pages Functions",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public",
+    "snapshot": "node scripts/snapshot.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.17"
+  }
+}
